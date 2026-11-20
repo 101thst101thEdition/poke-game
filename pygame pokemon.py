@@ -107,14 +107,23 @@ def healEffect(creature, attackBuff, defenseBuff, speedBuff, damage):
 
 def playRound(creature1, move1, creature2):
     tempMove = random.choice(creature2.moves)
-    if creature1.speed * creature1.tempSpeed > creature2.speed * creature2.tempSpeed:
+    if move1.priority > tempMove.priority:
         attack(creature1, creature2, move1)
         if creature2.isAlive():
             attack(creature2, creature1, tempMove)
-    else:
+    elif move1.priority < tempMove.priority:
         attack(creature2, creature1, tempMove)
         if creature1.isAlive():
             attack(creature1, creature2, move1)
+    elif move1.priority == tempMove.priority:
+        if creature1.speed * creature1.tempSpeed > creature2.speed * creature2.tempSpeed:
+            attack(creature1, creature2, move1)
+            if creature2.isAlive():
+                attack(creature2, creature1, tempMove)
+        else:
+            attack(creature2, creature1, tempMove)
+            if creature1.isAlive():
+                attack(creature1, creature2, move1)
     print (tempMove.name + " was used by " + creature2.name)
 
 #Type effectiveness dictionaries 'Attacker Type': ['Victim Type', 'Victim Type', ...]
@@ -167,7 +176,7 @@ dartThrow = Move('flying',60,100,'Dart Throw', selfBuffingEffect, 0, 0, 1, 30, a
 rapidWing = Move('flying',40,100,'Rapid Wing', selfBuffingEffect, 0, 0, 1, 100, affected='user')
 
 #Fire Creature
-flamup = Creature('fire',70,70,45,65,flameFury,'Flamup', move2=flameCharge, move3=fireDance)
+flamup = Creature('fire',70,70,45,65,flameFury,'Flamup', move2=quickAttack, move3=fireDance)
 #Water Creature
 tidalotl = Creature('water',85,50,70,45,pressureWash,'Tidalotl')
 #Grass Creature
