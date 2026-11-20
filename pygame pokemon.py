@@ -16,17 +16,21 @@ class Move:
             self.effectChance = effectChance
             self.affected = affected
     def __str__(self):
-        return f"{self.name} ({self.type}) - Power: {self.power}, Accuracy: {self.accuracy}%"
+        return f"{self.name} ({self.type}) - P: {self.power}, Acc: {self.accuracy}%"
 
 class Creature:
-    def __init__(self, ctype, maxhp, attack, defense, speed, startingMove, shownName):
+    def __init__(self, ctype, maxhp, attack, defense, speed, startingMove, shownName, move2 = None, move3 = None):
         self.type = ctype
         self.maxhp = maxhp
         self.currenthp = maxhp
         self.attack = attack
         self.defense = defense
         self.speed = speed
-        self.moves = [startingMove] 
+        self.moves = [startingMove]
+        if move2 is not None:
+            self.moves.append(move2)
+        if move3 is not None:
+            self.moves.append(move3)
         self.name = shownName
         self.tempAttack = 1
         self.tempDefense = 1
@@ -45,36 +49,43 @@ def staticScrambleEffect(attacker, a, b, c, damage):
     selfBuffingEffect(attacker, x, y, z, damage)
 
 def attack(attacker, victim, move):
-    typeMultiplier = 1
-    if victim.type in superEffective.get(move.type, []):
-        typeMultiplier = 2
-    elif victim.type in notVeryEffective.get(move.type, []):
-        typeMultiplier = 0.5
-    randomFactor = random.uniform(0.85,1)
-    if move.type == attacker.type:
-        stab = 1.25
-    base   = (move.power * (attacker.attack*attacker.tempAttack) / (victim.defense*victim.tempDefense)) / 5 + 2
-    damage = base * typeMultiplier * randomFactor * stab
-    if random.randint(1,100) <= move.accuracy:
-        if random.randint(1,12) == 1:
-            damage *= 1.5
-            print("The attack seems to be strong...")
-        damage = round(damage)
-        if damage < 1:
-            damage = 1
-        if damage > victim.currenthp:
-            damage = victim.currenthp
-        victim.currenthp -= damage
-        print(f"Damage: {damage}")
-        if typeMultiplier == 2:
-            print("It's super effective!")
-        elif typeMultiplier == 0.5:
-            print("It's not very effective...")
-        print(f"{victim.name}'s HP: {victim.currenthp}/{victim.maxhp}")
-        if move.effect is not None:
-            if random.randint(1, 100) <= move.effectChance:
-                move.effect(attacker if move.affected == 'user' else victim, move.effectX, move.effectY, move.effectZ, damage)
-    else: print('Miss!')
+    if move.power>0:
+        typeMultiplier = 1
+        if victim.type in superEffective.get(move.type, []):
+            typeMultiplier = 2
+        elif victim.type in notVeryEffective.get(move.type, []):
+            typeMultiplier = 0.5
+        randomFactor = random.uniform(0.85,1)
+        if move.type == attacker.type:
+            stab = 1.25
+        else: stab = 1
+        base   = (move.power * (attacker.attack*attacker.tempAttack) / (victim.defense*victim.tempDefense)) / 5 + 2
+        damage = base * typeMultiplier * randomFactor * stab
+        if random.randint(1,100) <= move.accuracy:
+            if random.randint(1,12) == 1:
+                damage *= 1.5
+                print("The attack seems to be strong...")
+            damage = round(damage)
+            if damage < 1:
+                damage = 1
+            if damage > victim.currenthp:
+                damage = victim.currenthp
+            victim.currenthp -= damage
+            print(f"Damage: {damage}")
+            if typeMultiplier == 2:
+                print("It's super effective!")
+            elif typeMultiplier == 0.5:
+                print("It's not very effective...")
+            print(f"{victim.name}'s HP: {victim.currenthp}/{victim.maxhp}")
+            if move.effect is not None:
+                if random.randint(1, 100) <= move.effectChance:
+                    move.effect(attacker if move.affected == 'user' else victim, move.effectX, move.effectY, move.effectZ, damage)
+        else: print('Miss!')
+    else:
+        if random.randint(1,100) <= move.accuracy:
+            if move.effect is not None:
+                if random.randint(1, 100) <= move.effectChance:
+                    move.effect(attacker if move.affected == 'user' else victim, move.effectX, move.effectY, move.effectZ, 0)
 
 def selfBuffingEffect(creature, attackBuff, defenseBuff, speedBuff, damage):
     for buff, stat, buffAttr in [(attackBuff, 'tempAttack', 'attackBuff'), (defenseBuff, 'tempDefense', 'defenseBuff'), (speedBuff, 'tempSpeed', 'speedBuff')]:
@@ -93,6 +104,18 @@ def healEffect(creature, attackBuff, defenseBuff, speedBuff, damage):
     healAmount = round(damage * 0.75)
     creature.currenthp = min(creature.currenthp + healAmount, creature.maxhp)
     print(f"{creature.name} was healed for {healAmount} HP.")
+
+def playRound(creature1, move1, creature2):
+    tempMove = random.choice(creature2.moves)
+    if creature1.speed * creature1.tempSpeed > creature2.speed * creature2.tempSpeed:
+        attack(creature1, creature2, move1)
+        if creature2.isAlive():
+            attack(creature2, creature1, tempMove)
+    else:
+        attack(creature2, creature1, tempMove)
+        if creature1.isAlive():
+            attack(creature1, creature2, move1)
+    print (tempMove.name + " was used by " + creature2.name)
 
 #Type effectiveness dictionaries 'Attacker Type': ['Victim Type', 'Victim Type', ...]
 superEffective = {
@@ -144,7 +167,7 @@ dartThrow = Move('flying',60,100,'Dart Throw', selfBuffingEffect, 0, 0, 1, 30, a
 rapidWing = Move('flying',40,100,'Rapid Wing', selfBuffingEffect, 0, 0, 1, 100, affected='user')
 
 #Fire Creature
-flamup = Creature('fire',70,70,45,65,flameFury,'Flamup')
+flamup = Creature('fire',70,70,45,65,flameFury,'Flamup', move2=flameCharge, move3=fireDance)
 #Water Creature
 tidalotl = Creature('water',85,50,70,45,pressureWash,'Tidalotl')
 #Grass Creature
@@ -158,7 +181,7 @@ voltile = Creature('electric',65,75,40,70,staticScramble,'Voltile')
 rockjaw = Creature('rock',90,45,80,20,rockSlide,'Rockjaw')
 #Flying Creature
 dartlix = Creature('flying',70,65,50,80,dartThrow,'Dartlix')
-knightwing = Creature('flying',80,70,60,90,rapidWing,'Knightwing')
+
 
 pygame.init()
 screenLength = 800
@@ -167,6 +190,7 @@ screen = pygame.display.set_mode((screenLength, screenWidth))
 maxBarLength = 300
 clock = pygame.time.Clock()
 font = pygame.font.Font(None, 36)
+selection = 0
 
 def drawHpBar(creature, x, y):
     currenthp = creature.currenthp
@@ -190,13 +214,22 @@ while running:
             running = False
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
-                if flamup.isAlive():
-                    attack(voltile, flamup, thunderShock)
+                if flamup.isAlive() and voltile.isAlive():
+                    playRound(flamup, flamup.moves[selection], voltile)
+            if event.key == pygame.K_UP:
+                selection = (selection - 1) % len(flamup.moves)
+            if event.key == pygame.K_DOWN:
+                selection = (selection + 1) % len(flamup.moves)
+            print(f"Selected move: {flamup.moves[selection].name}")
     screen.fill((30,30,30))
 
     drawHpBar(flamup, 0, 0)
     drawHpBar(voltile, 500, 500)
     creature1text = font.render(f"{flamup.name}: {flamup.currenthp}/{flamup.maxhp}", True, (255,255,255))
+    for move in flamup.moves:
+        moveBackground = pygame.draw.rect(screen, (50,50,50), (0, 150 + flamup.moves.index(move)*30, 200, 30))
+        moveText = font.render(move.name, True, (255,255,255))
+        screen.blit(moveText, (5, 155 + flamup.moves.index(move)*30))
     creature2text = font.render(f"{voltile.name}: {voltile.currenthp}/{voltile.maxhp}", True, (255,255,255))
     screen.blit(creature1text, (0,100))
     screen.blit(creature2text,(630,470))
