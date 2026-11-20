@@ -1,12 +1,22 @@
 import random
+import pygame
+import time
 
 class Move:
-    def __init__(self, mtype, power, accuracy, shownName, effect):
+    def __init__(self, mtype, power, accuracy, shownName, effect, effectX=None, effectY=None, effectZ=None, effectChance=None, affected=None):
         self.type = mtype
         self.power = power
         self.accuracy = accuracy
         self.name = shownName
         self.effect = effect
+        if self.effect is not None:
+            self.effectX = effectX
+            self.effectY = effectY
+            self.effectZ = effectZ
+            self.effectChance = effectChance
+            self.affected = affected
+    def __str__(self):
+        return f"{self.name} ({self.type}) - Power: {self.power}, Accuracy: {self.accuracy}%"
 
 class Creature:
     def __init__(self, ctype, maxhp, attack, defense, speed, startingMove, shownName):
@@ -16,29 +26,137 @@ class Creature:
         self.attack = attack
         self.defense = defense
         self.speed = speed
-        self.moves = [startingMove]
+        self.moves = [startingMove] 
         self.name = shownName
+        self.tempAttack = 1
+        self.tempDefense = 1
+        self.tempSpeed = 1
+        self.attackBuff = 0
+        self.defenseBuff = 0
+        self.speedBuff = 0
+    def __str__(self):
+        return f"{self.name} ({self.type}) - HP: {self.currenthp}/{self.maxhp}, Attack: {self.attack}, Defense: {self.defense}, Speed: {self.speed}, Moves: {[move.name for move in self.moves]}"
+    def isAlive(self):
+        return self.currenthp > 0
+def staticScrambleEffect(attacker, a, b, c, damage):
+    x = random.choice([-1, 2])
+    y = random.choice([-1, 2])
+    z = random.choice([-1, 2])
+    selfBuffingEffect(attacker, x, y, z, damage)
 
 def attack(attacker, victim, move):
     typeMultiplier = 1
+    if victim.type in superEffective.get(move.type, []):
+        typeMultiplier = 2
+    elif victim.type in notVeryEffective.get(move.type, []):
+        typeMultiplier = 0.5
     randomFactor = random.uniform(0.85,1)
-    base   = (move.power * attacker.attack / victim.defense) / 5 + 2
+    base   = (move.power * (attacker.attack*attacker.tempAttack) / (victim.defense*victim.tempDefense)) / 5 + 2
     damage = base * typeMultiplier * randomFactor
-    damage = round(damage)
-    print(f"Damage: {damage}")
-    if random.randint(0,99) <= move.accuracy:
+    if random.randint(1,100) <= move.accuracy:
+        if random.randint(1,12) == 1:
+            damage *= 1.5
+            print("The attack seems to be strong...")
+        damage = round(damage)
+        if damage < 1:
+            damage = 1
+        if damage > victim.currenthp:
+            damage = victim.currenthp
         victim.currenthp -= damage
-        print(victim.currenthp)
+        print(f"Damage: {damage}")
+        if typeMultiplier == 2:
+            print("It's super effective!")
+        elif typeMultiplier == 0.5:
+            print("It's not very effective...")
+        print(f"{victim.name}'s HP: {victim.currenthp}/{victim.maxhp}")
+        if move.effect is not None:
+            if random.randint(1, 100) <= move.effectChance:
+                move.effect(attacker if move.affected == 'user' else victim, move.effectX, move.effectY, move.effectZ, damage)
     else: print('Miss!')
 
-flameFury = Move('fire',60,95,'Flame Fury', None)
-pressureWash = Move('water',60,95,'Pressure Wash', None)
+def selfBuffingEffect(creature, attackBuff, defenseBuff, speedBuff, damage):
+    for buff, stat, buffAttr in [(attackBuff, 'tempAttack', 'attackBuff'), (defenseBuff, 'tempDefense', 'defenseBuff'), (speedBuff, 'tempSpeed', 'speedBuff')]:
+        setattr(creature, buffAttr, getattr(creature, buffAttr) + buff)
+        if getattr(creature, buffAttr) > 6:
+            setattr(creature, buffAttr, 6)
+        elif getattr(creature, buffAttr) < -6:
+            setattr(creature, buffAttr, -6)
+        if getattr(creature, buffAttr) >= 0:
+            setattr(creature, stat, (2+(getattr(creature, buffAttr))) * 0.5)
+        elif getattr(creature, buffAttr) < 0:
+            setattr(creature, stat, 2/(2 - getattr(creature, buffAttr)))
+    print(f"{creature.name}'s stats have been modified: Attack: {creature.attackBuff}, Defense: {creature.defenseBuff}, Speed: {creature.speedBuff}")
 
+def healEffect(creature, attackBuff, defenseBuff, speedBuff, damage):
+    healAmount = round(damage * 0.75)
+    creature.currenthp = min(creature.currenthp + healAmount, creature.maxhp)
+    print(f"{creature.name} was healed for {healAmount} HP.")
 
-flamup = Creature('fire',70,65,45,70,flameFury,'Flamup')
+#Type effectiveness dictionaries 'Attacker Type': ['Victim Type', 'Victim Type', ...]
+superEffective = {
+    'fire': ['grass'],
+    'water': ['fire','rock'],
+    'grass': ['water', 'rock','electric'],
+    'electric': ['water', 'flying'],
+    'rock': ['fire', 'flying'],
+    'flying': ['grass'],
+}
+notVeryEffective = {
+    'fire': ['water', 'fire', 'rock'],
+    'water': ['grass', 'water'],
+    'grass': ['fire', 'grass', 'flying'],
+    'electric': ['grass', 'electric', 'rock'],
+    'rock': ['grass'],
+    'flying': ['electric', 'rock'],
+    'normal': ['rock']
+}
+
+#Fire
+flameFury = Move('fire',60,100,'Flame Fury', None)
+flameCharge = Move('fire',100,90,'Flame Charge', selfBuffingEffect, -1, 0, 0, 100, affected='user')
+fireDance = Move('fire',0,100,'Fire Dance', selfBuffingEffect, 1, 1, 1, 100, affected='user')
+#Water
+pressureWash = Move('water',60,100,'Pressure Wash', None)
+hydroPump = Move('water',90,80,'Hydro Pump', None)
+aquaRing = Move('water',30,100,'Aqua Ring', healEffect, effectChance=100, affected='user')
+#Grass
+mossyMash = Move('grass',60,100,'Mossy Mash', None)
+overgrowth = Move('grass',30,100,'Overgrowth', selfBuffingEffect, 1, 1, 1, 60, affected='user')
+leechLife = Move('grass',20,100,'Leech Life', healEffect, effectChance=100, affected='user')
+#Normal
+cookItUp = Move('normal',80,100,'Cook It Up', selfBuffingEffect, 1, 1, 1, 20, affected='user')
+quickAttack = Move('normal',40,100,'Quick Attack', None)
+thrash = Move('normal',90,100,'Thrash', selfBuffingEffect, 0, -1, -1, 100, affected='user')
+#Electric
+staticScramble = Move('electric',70,90,'Static Scramble', staticScrambleEffect, effectChance=30, affected='user')
+powerSavingMode = Move('electric',0,100,'Power Saving Mode', selfBuffingEffect, -1, -1, -1, 100, affected='victim')
+thunderShock = Move('electric',50,100,'Thunder Shock', None)
+#Rock
+rockSlide = Move('rock',40,90,'Rock Slide', selfBuffingEffect, 0, 0, -1, 30, affected='victim')
+rockOn = Move('rock',0,100,'Rock On', selfBuffingEffect, 1, 1, 1, 100, affected='user')
+rockThrow = Move('rock',60,100,'Rock Throw', None)
+#Flying
+skyDive = Move('flying',80,95,'Sky Dive', None)
+dartThrow = Move('flying',60,100,'Dart Throw', selfBuffingEffect, 0, 0, 1, 30, affected='user')
+rapidWing = Move('flying',40,100,'Rapid Wing', selfBuffingEffect, 0, 0, 1, 100, affected='user')
+
+#Fire Creature
+flamup = Creature('fire',70,70,45,65,flameFury,'Flamup')
+#Water Creature
 tidalotl = Creature('water',85,50,70,45,pressureWash,'Tidalotl')
+#Grass Creature
+mossbeetle = Creature('grass',75,60,65,50,mossyMash,'Mossbeetle')
+#Normal Creature
+mausef = Creature('normal',60,55,50,60,cookItUp,'Mausef')
+#Electric Creature
+voltile = Creature('electric',65,75,40,70,staticScramble,'Voltile')
+#Rock Creature
+rockjaw = Creature('rock',90,45,80,20,rockSlide,'Rockjaw')
+#Flying Creature
+dartlix = Creature('flying',70,65,50,80,dartThrow,'Dartlix')
 
-print(flamup.moves)
-attack(flamup,tidalotl,flameFury)
 
-
+for _ in range(10):
+    if not tidalotl.isAlive() or not flamup.isAlive():
+        break
+    attack(tidalotl, flamup, pressureWash)
