@@ -10,8 +10,10 @@ mossbeetle = Creature('grass',75,60,65,50,mossyMash,'Mossbeetle')
 #Normal Creature
 mausef = Creature('normal',75,70,65,60,cookItUp,'Mausef')
 rostirre = Creature('normal',50, 65, 50, 75, lunge, 'Rostirre')
+purven = Creature('normal', 70, 40, 85, 40, thrash, 'Purven')
 #Electric Creature
 voltile = Creature('electric',65,75,40,70,staticScramble,'Voltile', move2=fireDance, move3=leechLife)
+boltolt = Creature('electric',40, 80, 30, 80,fissionBolt,'Boltolt')
 #Rock Creature
 rockjaw = Creature('rock',90,45,80,20,rockSlide,'Rockjaw')
 #Flying Creature

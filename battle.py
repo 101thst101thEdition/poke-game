@@ -1,4 +1,5 @@
 from creatures import *
+from moves import *
 from typechart import *
 import random
 
@@ -114,8 +115,11 @@ def botChooseMove(user, target):
             statusEffectScore *=0.75
         if target.defenseBuff < 0:
             statusEffectScore *=0.75
-        if damage > target.currenthp:
-            statusEffectScore += 30
+        if target.speed * target.tempSpeed > user.speed * user.tempSpeed and move.priority > 0:
+            statusEffectScore += 2 / (user.currenthp/user.maxhp)
+        if damage >= target.currenthp:
+            statusEffectScore += 60
+            damage = target.currenthp
         damage += statusEffectScore
         damage *= random.uniform(0.75,1)
         if damage > bestDamage:
