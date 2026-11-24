@@ -39,3 +39,24 @@ class Creature:
         return f"{self.name} ({self.type}) - HP: {self.currenthp}/{self.maxhp}, Attack: {self.attack}, Defense: {self.defense}, Speed: {self.speed}, Moves: {[move.name for move in self.moves]}"
     def isAlive(self):
         return self.currenthp > 0
+
+class Party:
+    def __init__(self, p1, p2=None, p3=None):
+        self.party = [p1]
+        if p2 is not None:
+            self.party.append(p2)
+        if p3 is not None:
+            self.party.append(p3)
+        self.activeSlot = 0
+    def getLiving(self):
+        d = []
+        for c in self.party:
+            if c.isAlive():
+                d.append(c)
+        return d
+    def switch(self, switchTo):
+        if switchTo.isAlive() and switchTo != self.party[self.activeSlot] and switchTo in self.party:
+            self.activeSlot = self.party.index(switchTo)
+            return self.party[self.activeSlot]
+    def whoIsActive(self):
+        return self.party[self.activeSlot]

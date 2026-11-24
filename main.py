@@ -1,5 +1,6 @@
 import pygame
 from battle import *
+from parties import *
 
 
 pygame.init()
