@@ -9,6 +9,7 @@ fireDance = Move('fire',0,100,'Fire Dance', selfBuffingEffect, 1, 1, 1, 100, aff
 pressureWash = Move('water',60,100,'Pressure Wash', None)
 hydroPump = Move('water',90,80,'Hydro Pump', None)
 aquaRing = Move('water',30,100,'Aqua Ring', healEffect, effectChance=100, affected='user')
+waterJet = Move('water',40,100,'Water Jet', None, priority=1)
 #Grass
 mossyMash = Move('grass',60,100,'Mossy Mash', None)
 overgrowth = Move('grass',30,100,'Overgrowth', selfBuffingEffect, 1, 1, 1, 60, affected='user')
@@ -16,8 +17,9 @@ leechLife = Move('grass',20,100,'Leech Life', healEffect, effectChance=100, affe
 #Normal
 cookItUp = Move('normal',80,100,'Cook It Up', selfBuffingEffect, 1, 1, 1, 20, affected='user')
 quickAttack = Move('normal',40,100,'Quick Attack', None, priority=1)
-thrash = Move('normal',90,100,'Thrash', selfBuffingEffect, 0, -1, -1, 100, affected='user')
-lunge = Move('normal', 50, 100, 'Lunge', None)
+thrash = Move('normal',100,100,'Thrash', selfBuffingEffect, 0, -1, -1, 100, affected='user')
+lunge = Move('normal', 60, 100, 'Lunge', None)
+pressureCook = Move('normal', 20, 100, 'Pressure Cook', selfBuffingEffect, 1, 1, 1, 100, affected='user')
 #Electric
 staticScramble = Move('electric',70,90,'Static Scramble', staticScrambleEffect, effectChance=30, affected='user')
 powerSavingMode = Move('electric',0,100,'Power Saving Mode', selfBuffingEffect, -1, -1, -1, 100, affected='victim')
